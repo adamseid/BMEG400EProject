@@ -4,6 +4,9 @@ BiocManager::install("affxparser")
 BiocManager::install("GEOquery")
 install.packages("GEOquery")
 BiocManager::install("affy")
+BiocManager::install("affxparser")
+BiocManager::install("DESeq2")
+install.packages("DESeq2")
 
 ### LOAD LIBRARIES ###
 library(affyio)
@@ -16,6 +19,7 @@ library(ggbiplot)
 library(reshape2)
 library(ComplexHeatmap)
 library(circlize)
+library( "DESeq2" )
 
 ### Unzip g-files ###
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434456_0IU_CD4_2.rma-gene-default.chp.gz", remove=FALSE)
@@ -114,20 +118,82 @@ colnames(fullDataTwo) <- IOIUReplicate1$QuantificationEntries$ProbeSetName
 rm(OIUReplicate2,OIUReplicate3,OIUReplicate4,OIUReplicate5,OIUReplicate6,IOIUReplicate1,
    IOIUReplicate2,IOIUReplicate3,IOIUReplicate4, IOIUReplicate5, IOIUReplicate6,
    NFReplicate1,NFReplicate2,NFReplicate3,NFReplicate4,NFReplicate5,NFReplicate6, OIUProb,
-   fullData.pca, res.pca, names, fullDataTwo.studies, IOIUVal, NFVal, OIUVal)
+   fullData.pca, res.pca, fullDataTwo.studies, IOIUVal, NFVal, OIUVal)
 
 ### Perform PCA Analysis ###
-fullDataTwo.pca <- prcomp(fullDataTwo, center = TRUE,scale. = TRUE)
+# center is a flag which ensures the variables within "fullDataTwo" is shifted to 0
+# Scale flag ensures the variables within "fullDataTwo" is scaled to contain variance.
+fullDataTwo.pca <- prcomp(fullDataTwo, center = TRUE,scale = TRUE)
+# ellipse flag draws a normal data ellipse for the 0IU, 10IU and 2IU groups
+# var.axes was set to false to remove arraws within our PCA plot. This is to clean up the graph
+# as the arrows were so numerous it covered the entire plot (including the pca points)
+# labels were set to be each individual study for 0IU, 10IU, and 2IU. There are 17 studies in total
+# 5 done on 0IU, 6 done on 10IU and 6 done on 2IU. Thus we will have 17 labels in total
+# groups was used to group the 17 studies into 3 overall groups (0IU, 10IU, 2IU). This was done
+# to better represent the spread of the PCA plot and how seperated each cluster was
 ggbiplot(fullDataTwo.pca,ellipse=TRUE,var.axes=FALSE,labels=rownames(fullDataTwo), groups=fullDataTwo.studies)
 
 ### Create HeatMap ###
+# This function transforms our data into a matrix. The reason this was done was because our 
+# heatmap accepts only matrix
 fullData.matrix <- data.matrix(fullData)
 row.names(fullData.matrix) <- row.names(fullData)
 colnames(fullData.matrix) <- colnames(fullData)
-base_mean = rowMeans(fullData.matrix)
+# This function center's our data within fullData.matrix. This is important as it 
+# improves the accuracy of our heatmap since it normalizes our data
 fullData.matrix.scaled = t(apply(fullData.matrix, 1, scale))
-type = gsub("s\\d+_", "", colnames(fullData.matrix))
-ha = HeatmapAnnotation(type = type, annotation_name_side = "left")
+# This function creates our heat map. Unlike the normal heat map function offered by r, 
+# this function calculates a complex heat map. This is important as it allows us to create
+# a heat map based on the expression of our data (this is what the author of the paper did).The
+# col tag determines the colors that will be used on our heat map. We chose a gradient from red
+# to blue to mimic the literature heat map. We made tags show_column_names and show_row_dend false.
+# These tags are responsible of showing column names and row dendrogram. We made it false because
+# they required a lot of computational power to produce and did not affect the overall graph (they
+# were not needed).
 Heatmap(fullData.matrix.scaled, name = "expression", row_km = 5,
         col = colorRamp2(c(-2, 2), c("red", "blue")),
         show_column_names = FALSE, row_title = NULL, show_row_dend = FALSE)
+
+### Create Differenetial Expression ###
+ratData <- read.delim("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/RaGeneVsRat230_BestMatch.txt")
+head(ratData)
+fullDataThree <- data.matrix(fullDataTwo)
+names <- colnames(fullDataTwo)
+for (x in 1:nrow(fullDataThree)) {
+  for(y in 1:ncol(fullDataThree)){
+    fullDataThree[x,y] = as.integer(fullDataThree[x,y])
+  }
+}
+dds <- DESeqDataSetFromMatrix(fullDataThree, DataFrame(names), ~ 1)
+dds <- DESeq(dds)
+res <- results(dds, contrast=c("0IU", "10IU", "2IU"))[order(res$pvalue),]
+resSig <- subset(res, padj < 0.06)
+# Find 5 downregulated data
+head(resSig[ order( resSig$log2FoldChange ), ])
+# Find 5 upregulated data
+head(resSig[ order( resSig$log2FoldChange, decreasing=TRUE), ])
+
+### BASH SCRIPT ###
+### Install Library ###
+conda install -c bioconda/label/cf201901 apt-probeset-summarize
+### Create chp files from CEL files ###
+# Perform a rma analysis because this is what the author used. Each rma analysis has a 
+# log2 transformation perfomed on it. The output-dir specifies the cel we will be using. The
+# --cc-chp-output creates the chp file
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434456_0IU_CD4_2.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434457_0IU_CD4_3.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434458_0IU_CD4_4.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434459_0IU_CD4_5.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434460_0IU_CD4_6.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434461_10IU_CD4_7.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434462_10IU_CD4_8.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434463_10IU_CD4_9.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434464_10IU_CD4_10.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434465_10IU_CD4_11.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434466_10IU_CD4_12.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434467_NF_CD4_13.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434468_NF_CD4_14.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434469_NF_CD4_15.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434470_NF_CD4_16.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434471_NF_CD4_17.CEL
+apt-probeset-summarize -a rma -d chip.cdf -o --cc-chp-output output-dir GSM2434472_NF_CD4_18.CEL
