@@ -11,6 +11,11 @@ library(affxparser)
 library(GEOquery)
 library(affy)
 library(stats)
+library(data.table)
+library(ggbiplot)
+library(reshape2)
+library(ComplexHeatmap)
+library(circlize)
 
 ### Unzip g-files ###
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434456_0IU_CD4_2.rma-gene-default.chp.gz", remove=FALSE)
@@ -18,12 +23,6 @@ gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/proj
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434458_0IU_CD4_4.rma-gene-default.chp.gz", remove=FALSE)
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434459_0IU_CD4_5.rma-gene-default.chp.gz", remove=FALSE)
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434460_0IU_CD4_6.rma-gene-default.chp.gz", remove=FALSE)
-
-gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434456_0IU_CD4_2.CEL.gz", remove=FALSE)
-gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434457_0IU_CD4_3.CEL.gz", remove=FALSE)
-gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434458_0IU_CD4_4.CEL.gz", remove=FALSE)
-gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434459_0IU_CD4_5.CEL.gz", remove=FALSE)
-gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434460_0IU_CD4_6.CEL.gz", remove=FALSE)
 
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434461_10IU_CD4_7.rma-gene-default.chp.gz", remove=FALSE)
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434462_10IU_CD4_8.rma-gene-default.chp.gz", remove=FALSE)
@@ -39,25 +38,12 @@ gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/proj
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434471_NF_CD4_17.rma-gene-default.chp.gz", remove=FALSE)
 gunzip("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434472_NF_CD4_18.rma-gene-default.chp.gz", remove=FALSE)
 
-### Load Chp files ###
+### Load Chp files###
 OIUReplicate2 = readChp("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434456_0IU_CD4_2.rma-gene-default.chp",withQuant = TRUE)
 OIUReplicate3 = readChp("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434457_0IU_CD4_3.rma-gene-default.chp",withQuant = TRUE)
 OIUReplicate4 = readChp("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434458_0IU_CD4_4.rma-gene-default.chp",withQuant = TRUE)
 OIUReplicate5 = readChp("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434459_0IU_CD4_5.rma-gene-default.chp",withQuant = TRUE)
 OIUReplicate6 = readChp("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434460_0IU_CD4_6.rma-gene-default.chp",withQuant = TRUE)
-
-OIUReplicate2Data = read.celfile("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434456_0IU_CD4_2.CEL",intensity.means.only=FALSE)
-OIUReplicate3Data = read.celfile("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434457_0IU_CD4_3.CEL",intensity.means.only=FALSE)
-OIUReplicate4Data = read.celfile("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434458_0IU_CD4_4.CEL",intensity.means.only=FALSE)
-OIUReplicate5Data = read.celfile("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434459_0IU_CD4_5.CEL",intensity.means.only=FALSE)
-OIUReplicate6Data = read.celfile("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434460_0IU_CD4_6.CEL",intensity.means.only=FALSE)
-
-length <- length(OIUReplicate2Data$OUTLIERS) + length(OIUReplicate3Data$OUTLIERS) + 
-  length(OIUReplicate4Data$OUTLIERS) + length(OIUReplicate5Data$OUTLIERS) + length(OIUReplicate6Data$OUTLIERS)
-OIUReplicate2Data$MASKS
-a <- read.probematrix("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434456_0IU_CD4_2.CEL")
-OIUReplicate3Data[[1]]
-OIUReplicate3Data
 
 IOIUReplicate1 = readChp("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434461_10IU_CD4_7.rma-gene-default.chp",withQuant = TRUE)
 IOIUReplicate2 = readChp("/Users/ethio/OneDrive/Desktop/UBC Spring 2022/BMEG 400E/Assignments/project/DataFiles/GSM2434462_10IU_CD4_8.rma-gene-default.chp",withQuant = TRUE)
@@ -79,24 +65,13 @@ OIUProb = c(as.numeric(OIUReplicate2$QuantificationEntries$ProbeSetName),
             as.numeric(OIUReplicate4$QuantificationEntries$ProbeSetName),
             as.numeric(OIUReplicate5$QuantificationEntries$ProbeSetName),
             as.numeric(OIUReplicate6$QuantificationEntries$ProbeSetName))
-length(OIUProb)
+
 ### Get all OIU Values ###
 OIUVal = c(OIUReplicate2$QuantificationEntries$QuantificationValue,
            OIUReplicate3$QuantificationEntries$QuantificationValue,
            OIUReplicate4$QuantificationEntries$QuantificationValue,
            OIUReplicate5$QuantificationEntries$QuantificationValue,
-           OIUReplicate6$QuantificationEntries$QuantificationValue, l)
-l <- rep(0, 29214)
-InternationalUnit <-rep(c(0),each=146070)
-OIUdf <- data.frame(ID = OIUProb, Value = OIUVal, Type = InternationalUnit)
-
-### Get all 1OIU IDs ###
-IOIUProb = c(as.numeric(IOIUReplicate1$QuantificationEntries$ProbeSetName),
-             as.numeric(IOIUReplicate2$QuantificationEntries$ProbeSetName),
-             as.numeric(IOIUReplicate3$QuantificationEntries$ProbeSetName),
-             as.numeric(IOIUReplicate4$QuantificationEntries$ProbeSetName),
-             as.numeric(IOIUReplicate5$QuantificationEntries$ProbeSetName),
-             as.numeric(IOIUReplicate6$QuantificationEntries$ProbeSetName))
+           OIUReplicate6$QuantificationEntries$QuantificationValue)
 
 ### Get all 1OIU Values ###
 IOIUVal = c(IOIUReplicate1$QuantificationEntries$QuantificationValue,
@@ -106,17 +81,6 @@ IOIUVal = c(IOIUReplicate1$QuantificationEntries$QuantificationValue,
             IOIUReplicate5$QuantificationEntries$QuantificationValue,
             IOIUReplicate6$QuantificationEntries$QuantificationValue)
 
-InternationalUnit <-rep(c(1),each=175284)
-IOIUdf <- data.frame(ID = IOIUProb, Value = IOIUVal, Type = InternationalUnit)
-
-### Get all NF IDs ###
-NFProb = c(as.numeric(NFReplicate1$QuantificationEntries$ProbeSetName),
-           as.numeric(NFReplicate2$QuantificationEntries$ProbeSetName),
-           as.numeric(NFReplicate3$QuantificationEntries$ProbeSetName),
-           as.numeric(NFReplicate4$QuantificationEntries$ProbeSetName),
-           as.numeric(NFReplicate5$QuantificationEntries$ProbeSetName),
-           as.numeric(NFReplicate6$QuantificationEntries$ProbeSetName))
-
 ### Get all 1OIU Values ###
 NFVal = c(NFReplicate1$QuantificationEntries$QuantificationValue,
           NFReplicate2$QuantificationEntries$QuantificationValue,
@@ -125,12 +89,7 @@ NFVal = c(NFReplicate1$QuantificationEntries$QuantificationValue,
           NFReplicate5$QuantificationEntries$QuantificationValue,
           NFReplicate6$QuantificationEntries$QuantificationValue)
 
-InternationalUnit <-rep(c(2),each=175284)
-NFdf <- data.frame(ID = NFProb, Value = NFVal, Type = InternationalUnit)
-
 ### Get list of all data ###
-fullData <- rbind(OIUdf,IOIUdf)
-fullData <- rbind(fullData,NFdf)
 fullData <- data.frame("0IU2" = OIUReplicate2$QuantificationEntries$QuantificationValue, "0IU3" = OIUReplicate3$QuantificationEntries$QuantificationValue, 
                        "0IU4" = OIUReplicate4$QuantificationEntries$QuantificationValue, "0IU5" = OIUReplicate5$QuantificationEntries$QuantificationValue, 
                        "0IU6" = OIUReplicate6$QuantificationEntries$QuantificationValue, "10IU1" = IOIUReplicate1$QuantificationEntries$QuantificationValue, 
@@ -140,10 +99,35 @@ fullData <- data.frame("0IU2" = OIUReplicate2$QuantificationEntries$Quantificati
                        "NF2" = NFReplicate2$QuantificationEntries$QuantificationValue, "NF3" = NFReplicate3$QuantificationEntries$QuantificationValue,
                        "NF4" = NFReplicate4$QuantificationEntries$QuantificationValue, "NF5" = NFReplicate5$QuantificationEntries$QuantificationValue,
                        "NF6" = NFReplicate6$QuantificationEntries$QuantificationValue)
-fullData <- data.frame("0IU" = OIUVal, "10IU" = IOIUVal, 
-                       "NF" = NFVal)
 
-fullData.pca <- prcomp(fullData, center = TRUE,scale. = TRUE)
-summary(fullData.pca)
-biplot(prcomp(fullData, scale = TRUE))
-plot(fullData.pca)
+### Get Names of each Study ###
+names <- c("0IU2", "0IU3", "0IU4", "0IU5", "0IU6", "10IU1","10IU2", "10IU3", "10IU4", "10IU5", 
+           "10IU6", "NF1","NF2", "NF3","NF4", "NF5","NF6")
+fullDataTwo.studies <- c(rep("0IU", 5), rep("10IU",6), rep("2IU", 6))
+
+### Transpose Matrix ###
+fullDataTwo <- transpose(fullData)
+row.names(fullDataTwo) <- names
+colnames(fullDataTwo) <- IOIUReplicate1$QuantificationEntries$ProbeSetName
+
+### Remove un-needed variables ###
+rm(OIUReplicate2,OIUReplicate3,OIUReplicate4,OIUReplicate5,OIUReplicate6,IOIUReplicate1,
+   IOIUReplicate2,IOIUReplicate3,IOIUReplicate4, IOIUReplicate5, IOIUReplicate6,
+   NFReplicate1,NFReplicate2,NFReplicate3,NFReplicate4,NFReplicate5,NFReplicate6, OIUProb,
+   fullData.pca, res.pca, names, fullDataTwo.studies, IOIUVal, NFVal, OIUVal)
+
+### Perform PCA Analysis ###
+fullDataTwo.pca <- prcomp(fullDataTwo, center = TRUE,scale. = TRUE)
+ggbiplot(fullDataTwo.pca,ellipse=TRUE,var.axes=FALSE,labels=rownames(fullDataTwo), groups=fullDataTwo.studies)
+
+### Create HeatMap ###
+fullData.matrix <- data.matrix(fullData)
+row.names(fullData.matrix) <- row.names(fullData)
+colnames(fullData.matrix) <- colnames(fullData)
+base_mean = rowMeans(fullData.matrix)
+fullData.matrix.scaled = t(apply(fullData.matrix, 1, scale))
+type = gsub("s\\d+_", "", colnames(fullData.matrix))
+ha = HeatmapAnnotation(type = type, annotation_name_side = "left")
+Heatmap(fullData.matrix.scaled, name = "expression", row_km = 5,
+        col = colorRamp2(c(-2, 2), c("red", "blue")),
+        show_column_names = FALSE, row_title = NULL, show_row_dend = FALSE)
